@@ -1,0 +1,334 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Magic Gift Tower</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  </head>
+  <body>
+    <div id="app"></div>
+    
+    <!-- Ambient particle layer -->
+    <div id="particles-layer" aria-hidden="true">
+      <div class="particle"></div><div class="particle"></div><div class="particle"></div>
+      <div class="particle"></div><div class="particle"></div><div class="particle"></div>
+      <div class="particle"></div><div class="particle"></div><div class="particle"></div>
+    </div>
+
+    <div id="ui-layer">
+      
+      <!-- ─── MAIN MENU ─── -->
+      <div id="main-menu" class="overlay-screen">
+        <div class="menu-card">
+          <div class="menu-logo">
+            <div class="logo-rune">✦</div>
+            <h1 class="menu-title">Magic Gift Tower</h1>
+            <p class="menu-subtitle">A mystical dice bidding game</p>
+          </div>
+          
+          <div class="menu-divider"></div>
+
+          <div class="menu-options">
+            <label class="field-label" for="player-count">Number of Players</label>
+            <div class="select-wrapper">
+              <select id="player-count">
+                <option value="2">2 Players — You vs Computer</option>
+                <option value="3">3 Players — You vs 2 Computers</option>
+                <option value="4" selected>4 Players — You vs 3 Computers</option>
+                <option value="5">5 Players — You vs 4 Computers</option>
+              </select>
+              <span class="select-arrow">▾</span>
+            </div>
+          </div>
+
+          <button id="start-game-btn" class="btn btn-primary btn-hero">
+            <span class="btn-icon">⚔</span> Begin Your Quest
+          </button>
+
+          <button id="rules-btn-menu" class="btn btn-secondary btn-full" style="margin-top: 12px;">
+            📖 Game Rules / Luật Chơi
+          </button>
+
+          <p class="menu-hint">Bid gold · Win gifts · Build formations · Conquer the Tower</p>
+        </div>
+      </div>
+
+      <!-- ─── HUD ─── -->
+      <div id="hud" class="hidden">
+        <div class="hud-top">
+          <div class="hud-brand">
+            <span class="hud-rune">✦</span>
+            <div>
+              <div class="hud-title">Magic Gift Tower</div>
+              <div class="hud-sub">Supply: <span id="dice-supply" class="hud-num">0</span> dice · <span id="turn-indicator"></span></div>
+            </div>
+            <button id="rules-btn-hud" class="btn btn-secondary btn-sm" style="margin-left: 15px;">📖 Rules</button>
+          </div>
+          <div id="players-hud-container" class="hud-players"></div>
+        </div>
+      </div>
+      
+      <!-- ─── GAME LOG ─── -->
+      <div id="game-log" class="hidden log-panel">
+        <div class="log-header">
+          <span class="log-icon">📜</span>
+          <h3>Chronicle</h3>
+        </div>
+        <div id="log-content"></div>
+      </div>
+      
+      <!-- ─── INITIAL SETUP ─── -->
+      <div id="setup-pick-panel" class="panel-modal hidden">
+        <div class="modal-inner">
+          <div class="modal-badge">⚗️</div>
+          <h2 class="modal-title">Choose Your Starting Gift</h2>
+          <p class="modal-subtitle">Select the magical icon for your first die, then click a spot on your board to place it.</p>
+          <div id="setup-icons-container" class="icon-picker"></div>
+        </div>
+      </div>
+
+      <!-- ─── PLACEMENT BANNER ─── -->
+      <div id="instruction-banner" class="instruction-banner hidden">
+        <span class="banner-pulse"></span>
+        Click an empty space on <strong>your board</strong> to place <span id="placement-icon" class="banner-icon"></span>
+      </div>
+
+      <!-- ─── BIDDING PANEL ─── -->
+      <div id="bidding-panel" class="side-panel hidden">
+        <div class="side-panel-header">
+          <span>🏛️</span>
+          <h2>Public Offering</h2>
+        </div>
+
+        <!-- Live bids table -->
+        <div class="live-bids-section">
+          <div class="section-label">Current highest bids</div>
+          <div id="live-bids-list" class="live-bids-grid"></div>
+        </div>
+
+        <div class="bid-meta">
+          <span class="gold-badge">💰 <span id="bid-gold-available">0</span> Gold available</span>
+        </div>
+
+        <p id="bid-error" class="bid-error-msg"></p>
+        <div id="bid-inputs" class="bid-grid"></div>
+        <button id="submit-bids" class="btn btn-primary btn-full">
+          🔒 Lock In Bids
+        </button>
+      </div>
+
+      <!-- ─── MESSAGE / OVERLAY ─── -->
+      <div id="message-overlay" class="panel-modal hidden">
+        <div class="modal-inner">
+          <h2 id="message-title" class="modal-title"></h2>
+          <div id="dice-results" class="dice-results-row"></div>
+          <div id="message-body" class="modal-body"></div>
+          <button id="message-next" class="btn btn-primary btn-wide">Continue →</button>
+        </div>
+      </div>
+
+      <!-- ─── GAME RULES MODAL ─── -->
+      <div id="rules-modal" class="panel-modal hidden" style="z-index: 30;">
+        <div class="modal-inner rules-modal-inner">
+          <button id="close-rules-btn" class="modal-close-btn">&times;</button>
+          <h2 class="modal-title">📖 Game Rules &amp; Formations</h2>
+          
+          <!-- Language Tabs -->
+          <div class="tab-bar">
+            <button id="tab-btn-en" class="tab-btn active">🇬🇧 English</button>
+            <button id="tab-btn-vi" class="tab-btn">🇻🇳 Tiếng Việt</button>
+          </div>
+
+          <!-- ENGLISH RULES -->
+          <div id="rules-content-en" class="modal-body rules-scroll-body">
+            <section class="rules-section">
+              <h3>1. Objective</h3>
+              <p>Collect Magic Gift Dice through public auctions and arrange them on your personal <strong>3×3 board</strong> to create magical formations. Score Victory Points (VP) and convert remaining Gold into VP at the end of the game!</p>
+            </section>
+
+            <section class="rules-section">
+              <h3>2. Setup</h3>
+              <ul>
+                <li>Each player starts with <strong>30 Gold</strong>, 1 player board, and <strong>1 starting die</strong>.</li>
+                <li>Players choose any face for their starting die and place it on any space of their 3×3 board.</li>
+                <li>Total dice in common supply = <strong>9 dice per player</strong>.</li>
+              </ul>
+            </section>
+
+            <section class="rules-section">
+              <h3>3. Round Structure</h3>
+              <ol>
+                <li><strong>Phase 1 – Public Offering (Bidding):</strong> In turn order, players place Gold bids on the 6 gift icons. Total bids cannot exceed Gold on hand. Bids on each icon must be unique among players!</li>
+                <li><strong>Phase 2 – Roll the Magic Gift Tower:</strong> Roll <strong>1 die per player</strong> from the tower.</li>
+                <li><strong>Phase 3 – Resolve Auctions:</strong> The highest bidder on each revealed icon wins 1 die and pays their bid. Unwon/Unclaimed dice return to common supply.</li>
+                <li><strong>Phase 4 – Place Dice:</strong> Winners place dice onto empty spaces on their 3×3 board matching the won icon. Dice can never move or rotate.</li>
+              </ol>
+            </section>
+
+            <section class="rules-section">
+              <h3>4. Final Scoring &amp; Formations</h3>
+              <p><strong>The One Rule (Locking):</strong> Each die may be claimed by at most <em>one Line formation</em> AND at most <em>one Square formation</em>.</p>
+              
+              <table class="scoring-table" style="margin-top: 10px;">
+                <thead>
+                  <tr>
+                    <th>Formation</th>
+                    <th>Shape</th>
+                    <th>Reward</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><strong>Legendary Formation</strong> (All 9 spaces same icon)</td>
+                    <td>—</td>
+                    <td style="color: gold; font-weight: bold;">Instant Win</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Crossing, Two Identical Icons</strong></td>
+                    <td>Line (Row + Col)</td>
+                    <td>15 VP + 12 Gold</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Crossing, Two Different Icons</strong></td>
+                    <td>Line (Row + Col)</td>
+                    <td>12 VP + 12 Gold</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Six Identical Icons</strong> (2 rows or 2 cols)</td>
+                    <td>Line</td>
+                    <td>9 VP + 9 Gold</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Five of Six Different Icons</strong> (2 rows or 2 cols)</td>
+                    <td>Line</td>
+                    <td>9 VP + 9 Gold</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Three Identical Icons</strong> (Row, Col, or Diagonal)</td>
+                    <td>Line</td>
+                    <td>3 VP + 3 Gold</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Four Identical Icons</strong> (2×2 block)</td>
+                    <td>Square</td>
+                    <td>5 VP + 5 Gold</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Four Different Icons</strong> (2×2 block)</td>
+                    <td>Square</td>
+                    <td>3 VP + 3 Gold</td>
+                  </tr>
+                </tbody>
+              </table>
+
+              <p style="margin-top: 12px;"><strong>Gold Conversion:</strong> Every <strong>2 Gold = 1 Victory Point</strong> (round down).</p>
+            </section>
+
+            <section class="rules-section">
+              <h3>5. Winner</h3>
+              <p>The player with the highest total Victory Points wins! In case of a tie, the player with the most remaining Gold wins.</p>
+            </section>
+          </div>
+
+          <!-- VIETNAMESE RULES -->
+          <div id="rules-content-vi" class="modal-body rules-scroll-body hidden">
+            <section class="rules-section">
+              <h3>1. Mục Tiêu Game</h3>
+              <p>Thu thập Xúc Xắc Quà Tặng Kỳ Diệu qua các phiên đấu giá công khai và xếp chúng lên <strong>bảng 3×3</strong> cá nhân để tạo các đội hình phép thuật. Tích lũy Điểm Chiến Thắng (VP) và quy đổi Vàng còn lại thành VP ở cuối game!</p>
+            </section>
+
+            <section class="rules-section">
+              <h3>2. Thiết Lập (Setup)</h3>
+              <ul>
+                <li>Mỗi người chơi bắt đầu với <strong>30 Vàng</strong>, 1 bảng chơi và <strong>1 xúc xắc ban đầu</strong>.</li>
+                <li>Người chơi tự chọn 1 mặt cho xúc xắc ban đầu và đặt vào ô bất kỳ trên bảng 3×3.</li>
+                <li>Tổng xúc xắc trong kho chung = <strong>9 xúc xắc cho mỗi người chơi</strong>.</li>
+              </ul>
+            </section>
+
+            <section class="rules-section">
+              <h3>3. Cấu Trúc Một Vòng Chơi (Round)</h3>
+              <ol>
+                <li><strong>Giai đoạn 1 – Đấu Giá Công Khai (Public Offering):</strong> Theo thứ tự lượt, người chơi đặt Vàng cược lên 6 biểu tượng. Tổng tiền cược không vượt quá số Vàng đang có. Mức cược trên cùng 1 icon không được trùng nhau giữa các người chơi!</li>
+                <li><strong>Giai đoạn 2 – Đổ Xúc Xắc (Roll Tower):</strong> Đổ số xúc xắc bằng <strong>đúng số người chơi</strong> từ tháp.</li>
+                <li><strong>Giai đoạn 3 – Trao Đấu Giá (Resolve Auctions):</strong> Người cược cao nhất ở mỗi icon xuất hiện sẽ thắng 1 xúc xắc và trả số Vàng đã cược. Xúc xắc không có ai cược sẽ quay lại kho.</li>
+                <li><strong>Giai đoạn 4 – Đặt Xúc Xắc (Place Dice):</strong> Người thắng đặt xúc xắc nhận được vào ô trống trên bảng 3x3. Đặt rồi không được di chuyển hay xoay!</li>
+              </ol>
+            </section>
+
+            <section class="rules-section">
+              <h3>4. Tính Điểm Cuối Game &amp; Các Đội Hình</h3>
+              <p><strong>Quy Tắc Duy Nhất (The One Rule):</strong> Mỗi viên xúc xắc chỉ được tính tối đa cho <em>1 Đội Hình Đường (Line)</em> VÀ tối đa <em>1 Đội Hình Khối Vuông (Square)</em>.</p>
+              
+              <table class="scoring-table" style="margin-top: 10px;">
+                <thead>
+                  <tr>
+                    <th>Đội Hình (Formation)</th>
+                    <th>Dạng</th>
+                    <th>Phần Thưởng</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><strong>Đội Hình Huyền Thoại</strong> (Tất cả 9 ô cùng 1 icon)</td>
+                    <td>—</td>
+                    <td style="color: gold; font-weight: bold;">Thắng Ngay Lập Tức</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Chữ Thập - 2 Icon Giống Nhau</strong> (Crossing Identical)</td>
+                    <td>Line (Hàng + Cột)</td>
+                    <td>15 VP + 12 Vàng</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Chữ Thập - 2 Icon Khác Nhau</strong> (Crossing Different)</td>
+                    <td>Line (Hàng + Cột)</td>
+                    <td>12 VP + 12 Vàng</td>
+                  </tr>
+                  <tr>
+                    <td><strong>6 Icon Giống Nhau</strong> (2 hàng hoặc 2 cột)</td>
+                    <td>Line</td>
+                    <td>9 VP + 9 Vàng</td>
+                  </tr>
+                  <tr>
+                    <td><strong>5 Trong 6 Icon Khác Nhau</strong> (2 hàng hoặc 2 cột)</td>
+                    <td>Line</td>
+                    <td>9 VP + 9 Vàng</td>
+                  </tr>
+                  <tr>
+                    <td><strong>3 Icon Giống Nhau</strong> (Hàng, Cột, hoặc Đường Chéo)</td>
+                    <td>Line</td>
+                    <td>3 VP + 3 Vàng</td>
+                  </tr>
+                  <tr>
+                    <td><strong>4 Icon Giống Nhau</strong> (Khối vuông 2×2)</td>
+                    <td>Square</td>
+                    <td>5 VP + 5 Vàng</td>
+                  </tr>
+                  <tr>
+                    <td><strong>4 Icon Khác Nhau</strong> (Khối vuông 2×2)</td>
+                    <td>Square</td>
+                    <td>3 VP + 3 Vàng</td>
+                  </tr>
+                </tbody>
+              </table>
+
+              <p style="margin-top: 12px;"><strong>Quy Đổi Vàng:</strong> Cứ <strong>2 Vàng = 1 VP</strong> (làm tròn xuống).</p>
+            </section>
+
+            <section class="rules-section">
+              <h3>5. Xác Định Người Chiến Thắng</h3>
+              <p>Người có tổng điểm VP cao nhất sẽ thắng! Nếu hòa điểm, người còn lại nhiều Vàng hơn sẽ dành chiến thắng.</p>
+            </section>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
