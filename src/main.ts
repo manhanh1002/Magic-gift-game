@@ -275,14 +275,27 @@ function createEmojiTexture(emoji: string): THREE.CanvasTexture {
   return new THREE.CanvasTexture(canvas);
 }
 
-const iconMaterials: Record<string, THREE.MeshStandardMaterial> = {};
+const faceMaterials: Record<string, THREE.MeshStandardMaterial> = {};
 for (const icon of Object.values(Icon)) {
-  // Single material applied to all 6 faces — emoji shows cleanly on every side
-  iconMaterials[icon] = new THREE.MeshStandardMaterial({
+  faceMaterials[icon] = new THREE.MeshStandardMaterial({
     map: createEmojiTexture(icon),
     roughness: 0.35,
     metalness: 0.15,
   });
+}
+
+function get6SidedDieMaterials(winIcon: Icon): THREE.MeshStandardMaterial[] {
+  const allIcons = Object.values(Icon);
+  const others = allIcons.filter(i => i !== winIcon);
+  // BoxGeometry face indices: 0 (+X), 1 (-X), 2 (+Y - Top), 3 (-Y - Bottom), 4 (+Z), 5 (-Z)
+  return [
+    faceMaterials[others[0]], // +X
+    faceMaterials[others[1]], // -X
+    faceMaterials[winIcon],   // +Y (TOP FACE -> WINNING ICON)
+    faceMaterials[others[2]], // -Y (Bottom)
+    faceMaterials[others[3]], // +Z
+    faceMaterials[others[4]], // -Z
+  ];
 }
 
 // Board material — carved stone circle
@@ -326,7 +339,7 @@ export function renderBoard(state: GameState, playerId: PlayerId, pos: {x: numbe
       const icon = board[r][c];
       if (icon) {
         const geometry = new THREE.BoxGeometry(0.88, 0.88, 0.88);
-        const mesh = new THREE.Mesh(geometry, iconMaterials[icon]);
+        const mesh = new THREE.Mesh(geometry, get6SidedDieMaterials(icon));
         
         const localX = c * 1.1 - 1.1;
         const localZ = r * 1.1 - 1.1;
@@ -502,7 +515,9 @@ const setupPickPanel = document.getElementById('setup-pick-panel')!;
 const setupIconsContainer = document.getElementById('setup-icons-container')!;
 
 const instructionBanner = document.getElementById('instruction-banner')!;
+const instructionText = document.getElementById('instruction-text')!;
 const placementIconSpan = document.getElementById('placement-icon')!;
+const confirmPlacementBtn = document.getElementById('confirm-placement-btn') as HTMLButtonElement;
 
 // Rules Modal Elements
 const rulesModal = document.getElementById('rules-modal')!;
@@ -538,52 +553,89 @@ tabBtnVi.addEventListener('click', () => {
 // Raycaster setup for manual placement
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
+const boardPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -0.01);
+const intersectionPoint = new THREE.Vector3();
+
 let currentDieToPlace: Icon | null = null;
+let selectedCell: {r: number, c: number} | null = null;
+let isPlacementPhaseActive = false;
 
 window.addEventListener('click', (event) => {
-  if (!currentDieToPlace || !gameState) return;
+  if (!gameState) return;
+  const targetEl = event.target as HTMLElement;
+  if (targetEl && (targetEl.tagName === 'BUTTON' || targetEl.tagName === 'INPUT' || targetEl.closest('.panel-modal') || targetEl.closest('.side-panel'))) {
+    return;
+  }
+
+  if (!currentDieToPlace && !isPlacementPhaseActive) return;
 
   mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
   mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
 
   raycaster.setFromCamera(mouse, camera);
 
-  const playerBoardMesh = playerPositions['player'].mesh;
-  if (!playerBoardMesh) return;
+  const pos = playerPositions['player'];
+  if (!pos) return;
 
-  const intersects = raycaster.intersectObject(playerBoardMesh);
-  
-  if (intersects.length > 0) {
-    const point = intersects[0].point;
-    // Transform point to local board space
-    const pos = playerPositions['player'];
-    const rot = pos.rotation; 
-    
-    const dx = point.x - pos.x;
-    const dz = point.z - pos.z;
-    
+  if (raycaster.ray.intersectPlane(boardPlane, intersectionPoint)) {
+    const dx = intersectionPoint.x - pos.x;
+    const dz = intersectionPoint.z - pos.z;
+
+    const rot = pos.rotation;
     const localX = dx * Math.cos(rot) + dz * Math.sin(rot);
     const localZ = -dx * Math.sin(rot) + dz * Math.cos(rot);
-    
-    // Map localX (-1.65 to 1.65) to col (0,1,2)
+
     const c = Math.floor((localX + 1.65) / 1.1);
     const r = Math.floor((localZ + 1.65) / 1.1);
-    
+
     if (r >= 0 && r < 3 && c >= 0 && c < 3) {
-      if (!gameState.players.player.board[r][c]) {
-        // Empty spot found
-        gameState.players.player.board[r][c] = currentDieToPlace;
-        gameState.log.push(`You placed ${currentDieToPlace} at row ${r+1}, col ${c+1}.`);
-        checkAndAwardFormations(gameState, 'player');
-        currentDieToPlace = null;
-        instructionBanner.classList.add('hidden');
-        updateScene();
-        
-        if (gameState.roundPhase === 'initial-setup') {
-          gameState.diceSupply--;
-          finishInitialSetup();
-        } else if (gameState.roundPhase === 'placement') {
-          handleNextManualPlacement();
+      const p = gameState.players.player;
+
+      // CASE 1: Player is placing a newly won die
+      if (currentDieToPlace) {
+        if (!p.board[r][c]) {
+          p.board[r][c] = currentDieToPlace;
+          gameState.log.push(`You placed ${currentDieToPlace} at row ${r+1}, col ${c+1}.`);
+          checkAndAwardFormations(gameState, 'player');
+          currentDieToPlace = null;
+          updateScene();
+
+          if (gameState.roundPhase === 'initial-setup') {
+            instructionBanner.classList.add('hidden');
+            gameState.diceSupply--;
+            finishInitialSetup();
+          } else {
+            handleNextManualPlacement();
+          }
+        }
+      }
+      // CASE 2: Rearranging / Swapping placed dice
+      else if (isPlacementPhaseActive) {
+        if (selectedCell === null) {
+          if (p.board[r][c]) {
+            selectedCell = { r, c };
+            instructionText.innerHTML = `Selected <strong>${p.board[r][c]}</strong> at (${r+1},${c+1}). Click another spot to move/swap.`;
+          }
+        } else {
+          if (selectedCell.r === r && selectedCell.c === c) {
+            selectedCell = null;
+            updatePlacementInstruction();
+          } else {
+            const iconA = p.board[selectedCell.r][selectedCell.c];
+            const iconB = p.board[r][c];
+            p.board[selectedCell.r][selectedCell.c] = iconB;
+            p.board[r][c] = iconA;
+
+            if (iconB) {
+              gameState.log.push(`You swapped ${iconA} at (${selectedCell.r+1},${selectedCell.c+1}) with ${iconB} at (${r+1},${c+1}).`);
+            } else {
+              gameState.log.push(`You moved ${iconA} to (${r+1},${c+1}).`);
+            }
+            checkAndAwardFormations(gameState, 'player');
+            selectedCell = null;
+            updateScene();
+            updatePlacementInstruction();
+          }
         }
       }
     }
@@ -997,23 +1049,49 @@ function beginPlacementPhase() {
     if (pid !== 'player') placeComputerDice(gameState, pid);
   });
   updateHUD();
+  isPlacementPhaseActive = true;
   handleNextManualPlacement();
 }
 
 function handleNextManualPlacement() {
   const p = gameState.players.player;
+  selectedCell = null;
+
   if (p.unplacedDice.length > 0) {
     currentDieToPlace = p.unplacedDice.pop()!;
-    placementIconSpan.textContent = currentDieToPlace;
+    confirmPlacementBtn.classList.add('hidden');
+    updatePlacementInstruction();
     instructionBanner.classList.remove('hidden');
   } else {
-    // End of round
-    gameState.firstPlayerIndex = (gameState.firstPlayerIndex + 1) % gameState.playerOrder.length;
-    gameState.log.push(`--- Round Ended ---`);
-    updateHUD();
-    startRound();
+    currentDieToPlace = null;
+    confirmPlacementBtn.classList.remove('hidden');
+    updatePlacementInstruction();
+    instructionBanner.classList.remove('hidden');
   }
 }
+
+function updatePlacementInstruction() {
+  const p = gameState.players.player;
+  if (currentDieToPlace) {
+    const remaining = p.unplacedDice.length + 1;
+    instructionText.innerHTML = `Click an empty space to place <span class="banner-icon">${currentDieToPlace}</span> (${remaining} remaining)`;
+  } else {
+    instructionText.innerHTML = `All dice placed! Click any die to swap positions, or click <strong>Confirm Placement</strong> when ready.`;
+  }
+}
+
+confirmPlacementBtn.addEventListener('click', () => {
+  isPlacementPhaseActive = false;
+  currentDieToPlace = null;
+  selectedCell = null;
+  instructionBanner.classList.add('hidden');
+  confirmPlacementBtn.classList.add('hidden');
+
+  gameState.firstPlayerIndex = (gameState.firstPlayerIndex + 1) % gameState.playerOrder.length;
+  gameState.log.push(`--- Round Ended ---`);
+  updateHUD();
+  startRound();
+});
 
 window.addEventListener('resize', () => {
   camera.aspect = window.innerWidth / window.innerHeight;
