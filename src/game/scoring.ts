@@ -10,31 +10,7 @@ interface FormationResult {
 }
 
 export function calculateScore(board: (Icon | null)[][], remainingGold: number): ScoreDetails {
-  // Check Legendary Formation (all 9 same)
-  let allSame = true;
-  const first = board[0][0];
-  if (first) {
-    for (let r = 0; r < 3; r++) {
-      for (let c = 0; c < 3; c++) {
-        if (board[r][c] !== first) allSame = false;
-      }
-    }
-  } else {
-    allSame = false;
-  }
-
-  if (allSame) {
-    return {
-      formations: [{ name: 'Legendary Formation (All 9 Identical)', vp: 999, gold: 0 }],
-      formationVp: 999,
-      formationGold: 0,
-      goldBeforeConversion: remainingGold,
-      totalGold: remainingGold,
-      goldVp: 0,
-      totalVp: 999,
-      legendary: true,
-    };
-  }
+  // Helper to check if a set of cells are all non-null and identical
 
   // Helper to check if a set of cells are all non-null and identical
   const allIdentical = (cells: { r: number; c: number }[]) => {

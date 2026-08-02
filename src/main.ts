@@ -668,7 +668,7 @@ function checkGameEnd() {
         resultsText += `
           <tr class="legendary-row">
             <td>${p.name}</td>
-            <td colspan="5">🌟 LEGENDARY FORMATION 🌟</td>
+            <td colspan="5">🌟 SIX IDENTICAL ICONS (INSTANT WIN) 🌟</td>
             <td class="score-total">WIN</td>
           </tr>
         `;
