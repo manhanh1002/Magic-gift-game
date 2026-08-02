@@ -522,6 +522,85 @@ canvas { display: block; }
   margin-bottom: 12px;
 }
 
+.rolling-tower-icon {
+  animation: tower-pulse 1s infinite alternate ease-in-out;
+}
+
+@keyframes tower-pulse {
+  from { transform: scale(1); filter: drop-shadow(0 0 5px var(--gold-glow)); }
+  to   { transform: scale(1.15) rotate(5deg); filter: drop-shadow(0 0 20px var(--gold)); }
+}
+
+.rolling-dice-container {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  margin: 24px 0;
+  flex-wrap: wrap;
+  perspective: 600px;
+}
+
+.dice-roll-card {
+  width: 84px;
+  height: 84px;
+  border-radius: 18px;
+  background: radial-gradient(circle at 30% 30%, #f5e9c8, #dfc98a 70%, #c4a855 100%);
+  border: 2px solid var(--gold-dim);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 44px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.5), inset 0 2px 4px rgba(255,255,255,0.6);
+  user-select: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.dice-roll-card.is-rolling {
+  animation: dice-tumble 0.12s infinite alternate ease-in-out;
+  border-color: var(--arcane);
+}
+
+@keyframes dice-tumble {
+  0%   { transform: translateY(0) rotate(-12deg) scale(0.94); }
+  50%  { transform: translateY(-12px) rotate(10deg) scale(1.08); filter: drop-shadow(0 0 12px var(--gold-glow)); }
+  100% { transform: translateY(4px) rotate(-6deg) scale(0.96); }
+}
+
+.dice-roll-card.has-landed {
+  animation: dice-snap 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  border-color: var(--gold);
+  box-shadow: 0 0 30px var(--gold-glow), 0 0 50px rgba(240,192,64,0.4);
+}
+
+@keyframes dice-snap {
+  0%   { transform: scale(1.35) rotate(180deg); }
+  60%  { transform: scale(0.92) rotate(-5deg); }
+  100% { transform: scale(1) rotate(0deg); }
+}
+
+.roll-auction-summary {
+  background: var(--bg-glass);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 18px;
+  margin-top: 16px;
+  font-size: 13px;
+  line-height: 1.6;
+  text-align: left;
+  max-height: 180px;
+  overflow-y: auto;
+  animation: modal-appear 0.3s ease-out;
+}
+
+.roll-auction-summary p {
+  padding: 4px 0;
+  border-bottom: 1px dashed rgba(255,255,255,0.06);
+}
+
+.roll-auction-summary p:last-child {
+  border-bottom: none;
+}
+
 .modal-title {
   font-family: var(--font-display);
   font-size: 26px;

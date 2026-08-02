@@ -488,8 +488,15 @@ const submitBidsBtn = document.getElementById('submit-bids') as HTMLButtonElemen
 const msgOverlay = document.getElementById('message-overlay')!;
 const msgTitle = document.getElementById('message-title')!;
 const msgBody = document.getElementById('message-body')!;
-const msgResults = document.getElementById('dice-results')!;
 const msgNext = document.getElementById('message-next') as HTMLButtonElement;
+
+// Rolling Modal Elements
+const diceRollingModal = document.getElementById('dice-rolling-modal')!;
+const rollingModalTitle = document.getElementById('rolling-modal-title')!;
+const rollingModalSubtitle = document.getElementById('rolling-modal-subtitle')!;
+const rollingDiceContainer = document.getElementById('rolling-dice-container')!;
+const rollAuctionSummary = document.getElementById('roll-auction-summary')!;
+const rollModalContinue = document.getElementById('roll-modal-continue') as HTMLButtonElement;
 
 const setupPickPanel = document.getElementById('setup-pick-panel')!;
 const setupIconsContainer = document.getElementById('setup-icons-container')!;
@@ -896,18 +903,85 @@ submitBidsBtn.addEventListener('click', () => {
 });
 
 function resolveRound() {
+  // 1. Roll the dice
   gameState.rolledDice = rollDiceForRound(gameState);
   gameState.log.push(`Tower rolled: ${gameState.rolledDice.join(', ')}`);
-  
-  resolveAuctions(gameState);
-  
-  // Display dice results as chips
-  msgResults.innerHTML = gameState.rolledDice.map(d => `<div class="dice-chip">${d}</div>`).join('');
-  showMessage('The Tower Revealed', `Auctions resolved. Check the Chronicle for details.`);
-  updateHUD();
-  
-  msgNext.onclick = () => {
-    msgOverlay.classList.add('hidden');
+
+  // 2. Setup modal UI for rolling
+  rollingModalTitle.textContent = 'The Magic Gift Tower Rolls...';
+  rollingModalSubtitle.textContent = 'Tumbling the dice of fate!';
+  rollAuctionSummary.classList.add('hidden');
+  rollAuctionSummary.innerHTML = '';
+  rollModalContinue.classList.add('hidden');
+  rollingDiceContainer.innerHTML = '';
+
+  const iconsList = Object.values(Icon);
+  const numDice = gameState.rolledDice.length;
+  const cards: HTMLDivElement[] = [];
+
+  // Create rolling card element for each die
+  for (let i = 0; i < numDice; i++) {
+    const card = document.createElement('div');
+    card.className = 'dice-roll-card is-rolling';
+    card.textContent = iconsList[Math.floor(Math.random() * iconsList.length)];
+    rollingDiceContainer.appendChild(card);
+    cards.push(card);
+  }
+
+  diceRollingModal.classList.remove('hidden');
+
+  // Fast face-cycling interval (every 40ms)
+  const intervalId = setInterval(() => {
+    cards.forEach((card) => {
+      if (card.classList.contains('is-rolling')) {
+        card.textContent = iconsList[Math.floor(Math.random() * iconsList.length)];
+      }
+    });
+  }, 40);
+
+  // Sequentially stop each die card after 1.2s
+  let landedCount = 0;
+  cards.forEach((card, idx) => {
+    setTimeout(() => {
+      card.classList.remove('is-rolling');
+      card.classList.add('has-landed');
+      card.textContent = gameState.rolledDice[idx];
+      landedCount++;
+
+      // When all dice have landed:
+      if (landedCount === numDice) {
+        clearInterval(intervalId);
+        
+        // Resolve auctions & record logs
+        resolveAuctions(gameState);
+        updateHUD();
+
+        rollingModalTitle.textContent = '✨ The Tower Has Spoken!';
+        rollingModalSubtitle.textContent = 'Auctions resolved — check your new gifts below!';
+
+        // Build auction summary
+        let summaryHtml = '<strong>🏛️ Auction Results:</strong>';
+        const recentLogs = gameState.log.slice(-numDice - 2);
+        let hasWinners = false;
+        recentLogs.forEach(entry => {
+          if (entry.includes('won a')) {
+            summaryHtml += `<p>${entry}</p>`;
+            hasWinners = true;
+          }
+        });
+        if (!hasWinners) {
+          summaryHtml += `<p>No bids matched the revealed dice. Unclaimed dice returned to supply.</p>`;
+        }
+
+        rollAuctionSummary.innerHTML = summaryHtml;
+        rollAuctionSummary.classList.remove('hidden');
+        rollModalContinue.classList.remove('hidden');
+      }
+    }, 1200 + idx * 350);
+  });
+
+  rollModalContinue.onclick = () => {
+    diceRollingModal.classList.add('hidden');
     beginPlacementPhase();
   };
 }
