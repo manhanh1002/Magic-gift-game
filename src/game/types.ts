@@ -15,6 +15,9 @@ export interface Player {
   id: PlayerId;
   name: string;
   gold: number;
+  vp: number;
+  awardedFormationVp: number;
+  awardedFormationGold: number;
   board: (Icon | null)[][]; // 3x3 grid
   unplacedDice: Icon[]; // Dice won this round that need placing
   isHuman: boolean;

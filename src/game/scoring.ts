@@ -1,5 +1,5 @@
 import { Icon } from './types';
-import type { ScoreDetails } from './types';
+import type { ScoreDetails, GameState, PlayerId } from './types';
 
 interface FormationResult {
   name: string;
@@ -249,4 +249,24 @@ export function calculateScore(board: (Icon | null)[][], remainingGold: number):
     totalVp: formationVp + goldVp,
     legendary: false,
   };
+}
+
+export function checkAndAwardFormations(state: GameState, playerId: PlayerId) {
+  const p = state.players[playerId];
+  if (!p) return;
+
+  const score = calculateScore(p.board, p.gold);
+
+  const deltaVp = score.formationVp - p.awardedFormationVp;
+  const deltaGold = score.formationGold - p.awardedFormationGold;
+
+  if (deltaVp > 0 || deltaGold > 0) {
+    p.vp += Math.max(0, deltaVp);
+    p.gold += Math.max(0, deltaGold);
+    p.awardedFormationVp = score.formationVp;
+    p.awardedFormationGold = score.formationGold;
+
+    const formationNames = score.formations.map(f => f.name).join(', ');
+    state.log.push(`🎉 ${p.name} completed formation [${formationNames}]! (+${Math.max(0, deltaVp)} VP, +${Math.max(0, deltaGold)} 🪙)`);
+  }
 }

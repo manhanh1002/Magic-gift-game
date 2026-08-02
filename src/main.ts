@@ -5,7 +5,7 @@ import { createInitialGameState, rollDiceForRound, resolveAuctions } from './gam
 import { Icon } from './game/types';
 import type { GameState, PlayerId } from './game/types';
 import { generateComputerBids, placeComputerDice, doComputerInitialSetup } from './ai/computer';
-import { calculateScore } from './game/scoring';
+import { calculateScore, checkAndAwardFormations } from './game/scoring';
 
 let gameState: GameState;
 
@@ -437,6 +437,48 @@ const playersHudContainer = document.getElementById('players-hud-container')!;
 const logPanel = document.getElementById('game-log')!;
 const logContent = document.getElementById('log-content')!;
 
+const liveScoreboardPanel = document.getElementById('live-scoreboard')!;
+const scoreboardTableContainer = document.getElementById('scoreboard-table-container')!;
+
+function renderLiveScoreboard() {
+  if (!gameState) return;
+  let html = `
+    <table class="live-scoring-table">
+      <thead>
+        <tr>
+          <th>Player</th>
+          <th>Form. VP</th>
+          <th>Form. 🪙</th>
+          <th>Rem. 🪙</th>
+          <th>🪙→VP</th>
+          <th>Total VP</th>
+        </tr>
+      </thead>
+      <tbody>
+  `;
+
+  for (const pid of gameState.playerOrder) {
+    const p = gameState.players[pid];
+    const estGoldVp = Math.floor(p.gold / 2);
+    const totalEstVp = p.vp + estGoldVp;
+    const isHuman = pid === 'player';
+
+    html += `
+      <tr>
+        <td>${isHuman ? '⚔ ' : '🤖 '}${p.name}</td>
+        <td>${p.awardedFormationVp}</td>
+        <td>${p.awardedFormationGold}</td>
+        <td>${p.gold}</td>
+        <td>${estGoldVp}</td>
+        <td class="score-total">${totalEstVp}</td>
+      </tr>
+    `;
+  }
+
+  html += `</tbody></table>`;
+  scoreboardTableContainer.innerHTML = html;
+}
+
 const bidPanel = document.getElementById('bidding-panel')!;
 const bidInputsContainer = document.getElementById('bid-inputs')!;
 const bidGoldAvailable = document.getElementById('bid-gold-available')!;
@@ -525,6 +567,7 @@ window.addEventListener('click', (event) => {
         // Empty spot found
         gameState.players.player.board[r][c] = currentDieToPlace;
         gameState.log.push(`You placed ${currentDieToPlace} at row ${r+1}, col ${c+1}.`);
+        checkAndAwardFormations(gameState, 'player');
         currentDieToPlace = null;
         instructionBanner.classList.add('hidden');
         updateScene();
@@ -573,6 +616,7 @@ startGameBtn.addEventListener('click', () => {
   mainMenu.classList.add('hidden');
   hud.classList.remove('hidden');
   logPanel.classList.remove('hidden');
+  liveScoreboardPanel.classList.remove('hidden');
   
   startInitialSetup();
 });
@@ -617,6 +661,7 @@ function updateHUD() {
   bidGoldAvailable.textContent = gameState.players['player'].gold.toString();
   
   updateLog();
+  renderLiveScoreboard();
   updateScene();
 }
 
@@ -714,6 +759,7 @@ function checkGameEnd() {
       msgOverlay.classList.add('hidden');
       hud.classList.add('hidden');
       logPanel.classList.add('hidden');
+      liveScoreboardPanel.classList.add('hidden');
       bidPanel.classList.add('hidden');
       instructionBanner.classList.add('hidden');
       mainMenu.classList.remove('hidden');

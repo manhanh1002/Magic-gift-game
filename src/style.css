@@ -409,6 +409,80 @@ canvas { display: block; }
 #log-content p:last-child { border-bottom: none; color: var(--text-bright); }
 
 /* ══════════════════════════════════════
+   LIVE SCOREBOARD PANEL
+══════════════════════════════════════ */
+.scoreboard-panel {
+  pointer-events: auto;
+  position: absolute;
+  left: 16px;
+  top: 80px;
+  width: 400px;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  backdrop-filter: blur(16px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+}
+
+.scoreboard-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--border);
+  background: rgba(240,192,64,0.05);
+}
+
+.scoreboard-icon { font-size: 16px; }
+
+.scoreboard-header h3 {
+  font-family: var(--font-display);
+  font-size: 13px;
+  color: var(--gold);
+  letter-spacing: 0.06em;
+}
+
+#scoreboard-table-container {
+  padding: 6px 10px;
+  overflow-x: auto;
+}
+
+.live-scoring-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+  text-align: center;
+}
+
+.live-scoring-table th {
+  padding: 5px 3px;
+  font-family: var(--font-display);
+  font-size: 10px;
+  color: var(--gold);
+  border-bottom: 1px solid var(--border);
+}
+
+.live-scoring-table td {
+  padding: 5px 3px;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  color: var(--text-dim);
+}
+
+.live-scoring-table td:first-child {
+  text-align: left;
+  color: var(--text-bright);
+  font-weight: 500;
+}
+
+.live-scoring-table td.score-total {
+  color: var(--gold);
+  font-weight: 700;
+}
+
+/* ══════════════════════════════════════
    MODAL PANELS (Setup, Message)
 ══════════════════════════════════════ */
 .panel-modal {

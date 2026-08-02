@@ -1,6 +1,7 @@
 import { Icon } from '../game/types';
 import type { GameState, PlayerId } from '../game/types';
 import { getIconPriorities, findBestPlacement } from './strategy';
+import { checkAndAwardFormations } from '../game/scoring';
 
 export function generateComputerBids(state: GameState, botId: PlayerId): Record<Icon, number> {
   const computer = state.players[botId];
@@ -83,6 +84,7 @@ export function placeComputerDice(state: GameState, botId: PlayerId) {
         }
       }
     }
+    checkAndAwardFormations(state, botId);
   }
 }
 
@@ -95,4 +97,5 @@ export function doComputerInitialSetup(state: GameState, botId: PlayerId) {
   computer.board[1][1] = chosenIcon;
   state.diceSupply--;
   state.log.push(`${computer.name} picked ${chosenIcon} and placed it on their board as starting die.`);
+  checkAndAwardFormations(state, botId);
 }
