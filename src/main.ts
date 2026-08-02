@@ -622,17 +622,23 @@ function updateHUD() {
 
 function checkGameEnd() {
   let someoneFilled = false;
+  let someoneInstantWin = false;
+
   for (const pid of gameState.playerOrder) {
+    const p = gameState.players[pid];
+    const score = calculateScore(p.board, p.gold);
+    if (score.legendary) someoneInstantWin = true;
+
     let count = 0;
     for (let r=0; r<3; r++) {
       for (let c=0; c<3; c++) {
-        if (gameState.players[pid].board[r][c]) count++;
+        if (p.board[r][c]) count++;
       }
     }
     if (count >= 9) someoneFilled = true;
   }
 
-  if (someoneFilled || gameState.diceSupply <= 0) {
+  if (someoneFilled || someoneInstantWin || gameState.diceSupply <= 0) {
     let bestScore = -1;
     let bestGold = -1;
     let winners: string[] = [];

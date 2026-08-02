@@ -25,7 +25,7 @@ export function calculateScore(board: (Icon | null)[][], remainingGold: number):
 
   if (allSame) {
     return {
-      formations: [{ name: 'Legendary Formation', vp: 999, gold: 0 }],
+      formations: [{ name: 'Legendary Formation (All 9 Identical)', vp: 999, gold: 0 }],
       formationVp: 999,
       formationGold: 0,
       goldBeforeConversion: remainingGold,
@@ -36,15 +36,55 @@ export function calculateScore(board: (Icon | null)[][], remainingGold: number):
     };
   }
 
-  const lines: FormationResult[] = [];
-  const squares: FormationResult[] = [];
-
-  // Helper to check if a set of cells are all the same
+  // Helper to check if a set of cells are all non-null and identical
   const allIdentical = (cells: { r: number; c: number }[]) => {
     const val = board[cells[0].r][cells[0].c];
     if (!val) return false;
     return cells.every(cell => board[cell.r][cell.c] === val);
   };
+
+  // Check Six Identical Icons (2 rows or 2 cols of the same icon) -> Instant Win!
+  const rowPairs = [[0,1], [0,2], [1,2]];
+  for (const [r1, r2] of rowPairs) {
+    const cells = [
+      {r: r1, c: 0}, {r: r1, c: 1}, {r: r1, c: 2},
+      {r: r2, c: 0}, {r: r2, c: 1}, {r: r2, c: 2}
+    ];
+    if (allIdentical(cells)) {
+      return {
+        formations: [{ name: 'Six Identical Icons (2 Rows - Instant Win)', vp: 999, gold: 0 }],
+        formationVp: 999,
+        formationGold: 0,
+        goldBeforeConversion: remainingGold,
+        totalGold: remainingGold,
+        goldVp: 0,
+        totalVp: 999,
+        legendary: true,
+      };
+    }
+  }
+  const colPairs = [[0,1], [0,2], [1,2]];
+  for (const [c1, c2] of colPairs) {
+    const cells = [
+      {r: 0, c: c1}, {r: 1, c: c1}, {r: 2, c: c1},
+      {r: 0, c: c2}, {r: 1, c: c2}, {r: 2, c: c2}
+    ];
+    if (allIdentical(cells)) {
+      return {
+        formations: [{ name: 'Six Identical Icons (2 Cols - Instant Win)', vp: 999, gold: 0 }],
+        formationVp: 999,
+        formationGold: 0,
+        goldBeforeConversion: remainingGold,
+        totalGold: remainingGold,
+        goldVp: 0,
+        totalVp: 999,
+        legendary: true,
+      };
+    }
+  }
+
+  const lines: FormationResult[] = [];
+  const squares: FormationResult[] = [];
 
   // Helper to count distinct icons
   const countDistinct = (cells: { r: number; c: number }[]) => {
@@ -93,30 +133,24 @@ export function calculateScore(board: (Icon | null)[][], remainingGold: number):
     }
   }
 
-  // 2. Six Identical & Five of Six Different
+  // 2. Five of Six Different Icons
   // Check pairs of rows
-  const rowPairs = [[0,1], [0,2], [1,2]];
   for (const [r1, r2] of rowPairs) {
     const cells = [
       {r: r1, c: 0}, {r: r1, c: 1}, {r: r1, c: 2},
       {r: r2, c: 0}, {r: r2, c: 1}, {r: r2, c: 2}
     ];
-    if (allIdentical(cells)) {
-      lines.push({ name: 'Six Identical Icons (Rows)', vp: 9, gold: 9, diceUsed: cells, type: 'line' });
-    } else if (countDistinct(cells) === 5) {
+    if (countDistinct(cells) === 5) {
       lines.push({ name: 'Five of Six Different Icons (Rows)', vp: 9, gold: 9, diceUsed: cells, type: 'line' });
     }
   }
   // Check pairs of columns
-  const colPairs = [[0,1], [0,2], [1,2]];
   for (const [c1, c2] of colPairs) {
     const cells = [
       {r: 0, c: c1}, {r: 1, c: c1}, {r: 2, c: c1},
       {r: 0, c: c2}, {r: 1, c: c2}, {r: 2, c: c2}
     ];
-    if (allIdentical(cells)) {
-      lines.push({ name: 'Six Identical Icons (Cols)', vp: 9, gold: 9, diceUsed: cells, type: 'line' });
-    } else if (countDistinct(cells) === 5) {
+    if (countDistinct(cells) === 5) {
       lines.push({ name: 'Five of Six Different Icons (Cols)', vp: 9, gold: 9, diceUsed: cells, type: 'line' });
     }
   }
