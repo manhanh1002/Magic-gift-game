@@ -4,12 +4,13 @@ import type { GameState, Bids, PlayerId, Player } from './types';
 export function createInitialGameState(numPlayers: number): GameState {
   const players: Record<PlayerId, Player> = {};
   const playerOrder: PlayerId[] = [];
+  const startingGold = numPlayers * 9;
 
   // 1 Human
   players['player'] = {
     id: 'player',
     name: 'You',
-    gold: 30,
+    gold: startingGold,
     board: [[null, null, null], [null, null, null], [null, null, null]],
     unplacedDice: [],
     isHuman: true,
@@ -22,7 +23,7 @@ export function createInitialGameState(numPlayers: number): GameState {
     players[botId] = {
       id: botId,
       name: `Computer ${i}`,
-      gold: 30,
+      gold: startingGold,
       board: [[null, null, null], [null, null, null], [null, null, null]],
       unplacedDice: [],
       isHuman: false,
