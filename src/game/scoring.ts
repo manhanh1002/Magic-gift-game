@@ -19,7 +19,8 @@ export function calculateScore(board: (Icon | null)[][], remainingGold: number):
     return cells.every(cell => board[cell.r][cell.c] === val);
   };
 
-  // Check Six Identical Icons (2 rows or 2 cols of the same icon) -> Instant Win!
+  // Check Six Identical Icons (strictly 2 PARALLEL rows or 2 PARALLEL cols of the same icon) -> Instant Win!
+  // Note: Crossing (1 row + 1 col) intersects at 1 cell taking 5 total cells, which is a Crossing formation, NOT Six Identical Icons.
   const rowPairs = [[0,1], [0,2], [1,2]];
   for (const [r1, r2] of rowPairs) {
     const cells = [
@@ -28,7 +29,7 @@ export function calculateScore(board: (Icon | null)[][], remainingGold: number):
     ];
     if (allIdentical(cells)) {
       return {
-        formations: [{ name: 'Six Identical Icons (2 Rows - Instant Win)', vp: 999, gold: 0 }],
+        formations: [{ name: 'Six Identical Icons (2 Parallel Rows - Instant Win)', vp: 999, gold: 0 }],
         formationVp: 999,
         formationGold: 0,
         goldBeforeConversion: remainingGold,
@@ -47,7 +48,7 @@ export function calculateScore(board: (Icon | null)[][], remainingGold: number):
     ];
     if (allIdentical(cells)) {
       return {
-        formations: [{ name: 'Six Identical Icons (2 Cols - Instant Win)', vp: 999, gold: 0 }],
+        formations: [{ name: 'Six Identical Icons (2 Parallel Cols - Instant Win)', vp: 999, gold: 0 }],
         formationVp: 999,
         formationGold: 0,
         goldBeforeConversion: remainingGold,
